@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>貓咪大戰爭 - 個人進度紀錄</title>
+    <style>
+        /* 設定整個網頁的基礎樣式 */
+        body {
+            background-color: #000000; /* 背景黑色 */
+            color: #FFFFFF; /* 文字白色 */
+            font-family: "微軟正黑體", sans-serif; /* 設定字體 */
+            display: flex; /* 使用彈性排版，為了讓內容置中 */
+            flex-direction: column; /* 內容垂直排列 */
+            align-items: center; /* 水平置中 */
+            justify-content: center; /* 垂直置中 */
+            height: 100vh; /* 高度為整個螢幕的高度 */
+            margin: 0; /* 移除預設邊距 */
+        }
+
+        h1 {
+            font-size: 3rem; /* 標題字體大小 */
+            margin-bottom: 50px; /* 標題下方的距離 */
+        }
+
+        /* 按鈕容器的樣式 */
+        .button-container {
+            display: flex;
+            gap: 20px; /* 兩個按鈕之間的間距 */
+        }
+
+        /* 按鈕的樣式設計 */
+        .nav-btn {
+            background-color: #F5B92A; /* 主色：黃色 */
+            color: #000000; /* 按鈕上的文字為黑色 */
+            border: 2px solid #C88F09; /* 輔助色：深黃色邊框 */
+            padding: 15px 40px; /* 按鈕內部的間距 (上下15, 左右40) */
+            font-size: 1.5rem; /* 按鈕文字大小 */
+            font-weight: bold; /* 文字加粗 */
+            border-radius: 10px; /* 圓角邊框 */
+            cursor: pointer; /* 滑鼠移過去會變成手指圖案 */
+            text-decoration: none; /* 移除超連結底線 */
+            transition: 0.3s; /* 設定動畫過渡時間 */
+        }
+
+        /* 當滑鼠停留在按鈕上時的效果 */
+        .nav-btn:hover {
+            background-color: #C88F09; /* 背景變深色 */
+            color: #FFFFFF; /* 文字變白色 */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>貓咪大戰爭紀錄網</h1>
+
+    <div class="button-container">
+        <a href="cats.html" class="nav-btn">貓咪培養</a>
+        <a href="stages.html" class="nav-btn">關卡進度</a>
+        <a href="gacha.html" class="nav-btn">轉蛋紀錄</a>
+    </div>
+
+</body>
+</html>

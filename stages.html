@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>關卡進度紀錄</title>
+    <style>
+        body { background-color: #FEF7E7; color: #333; font-family: "微軟正黑體", sans-serif; padding: 20px; max-width: 900px; margin: 0 auto; }
+        h1, h2, h3 { color: #C88F09; }
+        .section { background-color: white; border: 2px solid #F5B92A; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .radio-group { margin-bottom: 15px; line-height: 1.8; /* 讓多行按鈕之間有點間距，比較好看 */ }
+        .radio-group label { margin-right: 15px; cursor: pointer; display: inline-block; }
+        input[type="number"], input[type="text"] { width: 60px; padding: 5px; border: 1px solid #C88F09; border-radius: 5px; }
+        input[type="text"] { width: 150px; }
+        
+        button { background-color: #F5B92A; color: black; border: none; padding: 8px 15px; font-weight: bold; border-radius: 5px; cursor: pointer; margin-left: 10px; }
+        button:hover { background-color: #C88F09; color: white; }
+        .back-btn { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #C88F09; font-weight: bold; }
+        
+        /* 進度區的 Flex 樣式與拖曳設定 */
+        .progress-box {
+            border-left: 5px solid #F5B92A;
+            background-color: #fff;
+            padding: 10px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: grab;
+        }
+        .progress-box.dragging { opacity: 0.5; }
+        .delete-btn { background-color: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.9rem; margin-left: 0; }
+        .delete-btn:hover { background-color: #cc0000; }
+        .drag-handle { color: #aaa; margin-right: 15px; font-size: 1.2rem; cursor: grab; }
+        .record-content { flex-grow: 1; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">← 返回主頁面</a>
+    <h1>關卡進度紀錄</h1>
+
+    <div class="section">
+        <h3>主篇章</h3>
+        <div class="radio-group">
+            <label><input type="radio" name="mainChap" value="世界篇一">世界篇一</label>
+            <label><input type="radio" name="mainChap" value="世界篇二">世界篇二</label>
+            <label><input type="radio" name="mainChap" value="世界篇三">世界篇三</label><br>
+            
+            <label><input type="radio" name="mainChap" value="未來篇一">未來篇一</label>
+            <label><input type="radio" name="mainChap" value="未來篇二">未來篇二</label>
+            <label><input type="radio" name="mainChap" value="未來篇三">未來篇三</label><br>
+            
+            <label><input type="radio" name="mainChap" value="宇宙篇一">宇宙篇一</label>
+            <label><input type="radio" name="mainChap" value="宇宙篇二">宇宙篇二</label>
+            <label><input type="radio" name="mainChap" value="宇宙篇三">宇宙篇三</label><br>
+            
+            <label><input type="radio" name="mainChap" value="魔界篇">魔界篇</label>
+        </div>
+        進度：<input type="number" id="mainStage" min="1" max="49" placeholder="1~49">
+        <button onclick="saveMain()">送出</button>
+    </div>
+
+    <div class="section">
+        <h3>傳奇關卡</h3>
+        <div class="radio-group">
+            <label><input type="radio" name="legendType" value="舊傳">舊傳</label>
+            <label><input type="radio" name="legendType" value="真傳">真傳</label>
+            <label><input type="radio" name="legendType" value="0傳">0傳</label>
+        </div>
+        <div class="radio-group">
+            <label><input type="radio" name="legendCrown" value="1冠">1冠</label>
+            <label><input type="radio" name="legendCrown" value="2冠">2冠</label>
+            <label><input type="radio" name="legendCrown" value="3冠">3冠</label>
+            <label><input type="radio" name="legendCrown" value="4冠">4冠</label>
+        </div>
+        大關卡：<input type="number" id="legendBig" min="1" max="49" placeholder="1~49">
+        小關卡：<input type="number" id="legendSmall" min="1" max="10" placeholder="1~10">
+        <button onclick="saveLegend()">送出</button>
+    </div>
+
+    <div class="section">
+        <h3>其他區域</h3>
+        章節名稱：<input type="text" id="otherName" placeholder="例如：風雲貓咪塔">
+        數字進度：<input type="number" id="otherNum" placeholder="層/關">
+        <button onclick="saveOther()">送出</button>
+    </div>
+
+    <hr style="border-top: 2px solid #C88F09;">
+
+    <h2>當前進度列表 (可上下拖移排列)</h2>
+    <div id="outputMain"></div>
+    <div id="outputLegend"></div>
+    <div id="outputOther"></div>
+
+    <script>
+        window.onload = function() { displayAll(); };
+
+        function getRadioValue(name) {
+            let radios = document.getElementsByName(name);
+            for(let i = 0; i < radios.length; i++) {
+                if(radios[i].checked) return radios[i].value;
+            }
+            return null;
+        }
+
+        // 新增主篇章資料
+        function saveMain() {
+            let chap = getRadioValue("mainChap");
+            let stage = document.getElementById("mainStage").value;
+            if(!chap || stage === "") return alert("請勾選篇章並輸入進度！");
+            
+            // 限制輸入範圍在 1~49 之間
+            if(stage < 1 || stage > 49) return alert("進度請輸入 1 到 49 之間的數字！");
+
+            let data = JSON.parse(localStorage.getItem("stageMain")) || [];
+            data.push(`【主篇章】${chap} - 第 ${stage} 關`);
+            localStorage.setItem("stageMain", JSON.stringify(data));
+            displayAll();
+            
+            // 送出後清空輸入框與勾選
+            document.getElementById("mainStage").value = "";
+        }
+
+        // 新增傳奇關卡資料
+        function saveLegend() {
+            let type = getRadioValue("legendType");
+            let crown = getRadioValue("legendCrown");
+            let big = document.getElementById("legendBig").value;
+            let small = document.getElementById("legendSmall").value;
+            if(!type || !crown || big === "" || small === "") return alert("請完整填寫！");
+            
+            if(big < 1 || big > 49 || small < 1 || small > 10) {
+                return alert("大關卡請填 1~49，小關卡請填 1~10！");
+            }
+
+            let data = JSON.parse(localStorage.getItem("stageLegend")) || [];
+            data.push(`【傳奇關卡】${type} (${crown}) - ${big}-${small}`);
+            localStorage.setItem("stageLegend", JSON.stringify(data));
+            displayAll();
+            
+            document.getElementById("legendBig").value = "";
+            document.getElementById("legendSmall").value = "";
+        }
+
+        // 新增其他資料
+        function saveOther() {
+            let name = document.getElementById("otherName").value;
+            let num = document.getElementById("otherNum").value;
+            if(name === "" || num === "") return alert("請填寫章節名稱與數字！");
+            let data = JSON.parse(localStorage.getItem("stageOther")) || [];
+            data.push(`【其他】${name} - 進度：${num}`);
+            localStorage.setItem("stageOther", JSON.stringify(data));
+            displayAll();
+            
+            document.getElementById("otherName").value = "";
+            document.getElementById("otherNum").value = "";
+        }
+
+        // 共用刪除功能
+        function deleteItem(storageKey, index) {
+            if(confirm("確定要刪除這筆紀錄嗎？")) {
+                let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+                data.splice(index, 1);
+                localStorage.setItem(storageKey, JSON.stringify(data));
+                displayAll();
+            }
+        }
+
+        // 共用渲染與拖曳功能
+        function renderList(storageKey, divId) {
+            let data = JSON.parse(localStorage.getItem(storageKey)) || [];
+            let outputDiv = document.getElementById(divId);
+            outputDiv.innerHTML = ""; 
+            
+            let draggedIndex = null;
+
+            data.forEach((itemText, index) => {
+                let div = document.createElement("div");
+                div.className = "progress-box";
+                div.draggable = true;
+
+                // 拖曳事件
+                div.addEventListener("dragstart", () => {
+                    draggedIndex = index;
+                    setTimeout(() => div.classList.add("dragging"), 0);
+                });
+                div.addEventListener("dragend", () => div.classList.remove("dragging"));
+                div.addEventListener("dragover", (e) => e.preventDefault());
+                div.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    let targetIndex = index;
+                    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                        let draggedItem = data.splice(draggedIndex, 1)[0];
+                        data.splice(targetIndex, 0, draggedItem);
+                        localStorage.setItem(storageKey, JSON.stringify(data));
+                        displayAll();
+                    }
+                });
+
+                div.innerHTML = `
+                    <span class="drag-handle">☰</span>
+                    <div class="record-content">${itemText}</div>
+                    <button class="delete-btn" onclick="deleteItem('${storageKey}', ${index})">刪除</button>
+                `;
+                outputDiv.appendChild(div);
+            });
+        }
+
+        // 顯示所有列表
+        function displayAll() {
+            renderList("stageMain", "outputMain");
+            renderList("stageLegend", "outputLegend");
+            renderList("stageOther", "outputOther");
+        }
+    </script>
+</body>
+</html>

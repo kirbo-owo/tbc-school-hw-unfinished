@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>貓咪培養紀錄</title>
+    <style>
+        body { background-color: #FEF7E7; color: #333; font-family: "微軟正黑體", sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1, h2 { color: #C88F09; }
+        .input-section { background-color: white; border: 2px solid #F5B92A; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        label { font-weight: bold; margin-right: 10px; }
+        input { padding: 5px; margin-bottom: 10px; border: 1px solid #C88F09; border-radius: 5px; }
+        
+        /* 一般按鈕 */
+        button { background-color: #F5B92A; color: black; border: none; padding: 10px 20px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #C88F09; color: white; }
+        
+        .back-btn { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #C88F09; font-weight: bold; }
+
+        /* 紀錄列表的外觀更新，加入 Flex 排版讓內容左右對齊 */
+        .record-item {
+            background-color: white;
+            border-left: 5px solid #F5B92A;
+            padding: 10px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex; /* 使用彈性排版 */
+            align-items: center; /* 垂直置中 */
+            justify-content: space-between; /* 內容散布在左右兩側 */
+            cursor: grab; /* 滑鼠移過去顯示為「抓取」的手勢 */
+        }
+
+        /* 拖曳時的視覺效果 */
+        .record-item.dragging { opacity: 0.5; }
+
+        /* 刪除按鈕專屬樣式 */
+        .delete-btn { background-color: #ff4d4d; color: white; padding: 5px 10px; font-size: 0.9rem; }
+        .delete-btn:hover { background-color: #cc0000; }
+        
+        /* 拖曳把手樣式 */
+        .drag-handle { color: #aaa; margin-right: 15px; font-size: 1.2rem; cursor: grab; }
+        .record-content { flex-grow: 1; /* 讓文字內容填滿中間的空間 */ }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">← 返回主頁面</a>
+    <h1>貓咪培養紀錄</h1>
+
+    <div class="input-section">
+        <label>貓咪名稱：</label> <input type="text" id="catName" placeholder="例如：拉麵王貓"><br>
+        <label>貓咪等級：</label> <input type="number" id="catLevel" placeholder="例如：50"><br>
+        <label>解鎖本能：</label> <input type="text" id="catInstinct" placeholder="例如：體力+10"><br>
+        <button onclick="addCat()">新增紀錄</button>
+    </div>
+
+    <h2>紀錄區 (可上下拖移排列)</h2>
+    <div id="recordArea"></div>
+
+    <script>
+        window.onload = function() { displayCats(); };
+
+        function addCat() {
+            let name = document.getElementById("catName").value;
+            let level = document.getElementById("catLevel").value;
+            let instinct = document.getElementById("catInstinct").value;
+            if(name === "") return alert("請至少輸入貓咪名稱喔！");
+
+            let newCat = { name: name, level: level, instinct: instinct };
+            let cats = JSON.parse(localStorage.getItem("myCats")) || [];
+            cats.push(newCat);
+            localStorage.setItem("myCats", JSON.stringify(cats));
+
+            document.getElementById("catName").value = "";
+            document.getElementById("catLevel").value = "";
+            document.getElementById("catInstinct").value = "";
+            displayCats();
+        }
+
+        // --- 新增：刪除功能 ---
+        function deleteCat(index) {
+            // 跳出確認視窗，避免誤刪
+            if(confirm("確定要刪除這筆紀錄嗎？")) {
+                let cats = JSON.parse(localStorage.getItem("myCats")) || [];
+                cats.splice(index, 1); // 從陣列的第 index 個位置，刪除 1 筆資料
+                localStorage.setItem("myCats", JSON.stringify(cats));
+                displayCats(); // 重新顯示畫面
+            }
+        }
+
+        let draggedIndex = null; // 用來記錄目前正在拖曳哪一個項目
+
+        function displayCats() {
+            let recordArea = document.getElementById("recordArea");
+            recordArea.innerHTML = ""; 
+            let cats = JSON.parse(localStorage.getItem("myCats")) || [];
+
+            cats.forEach(function(cat, index) {
+                let div = document.createElement("div");
+                div.className = "record-item";
+                div.draggable = true; // 允許元素被拖曳
+
+                // --- 拖曳事件處理 ---
+                // 開始拖曳時
+                div.addEventListener("dragstart", function() {
+                    draggedIndex = index; // 記住抓起來的是第幾個
+                    setTimeout(() => div.classList.add("dragging"), 0);
+                });
+                // 拖曳結束時
+                div.addEventListener("dragend", function() {
+                    div.classList.remove("dragging");
+                });
+                // 拖曳經過其他元素上方時 (必須加上 preventDefault 才能觸發放下)
+                div.addEventListener("dragover", function(e) {
+                    e.preventDefault(); 
+                });
+                // 放下時
+                div.addEventListener("drop", function(e) {
+                    e.preventDefault();
+                    let targetIndex = index; // 放開時所在位置的編號
+                    
+                    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                        // 把抓起來的資料移出陣列
+                        let draggedItem = cats.splice(draggedIndex, 1)[0];
+                        // 再把它插入到新的位置
+                        cats.splice(targetIndex, 0, draggedItem);
+                        
+                        // 存檔並重新整理畫面
+                        localStorage.setItem("myCats", JSON.stringify(cats));
+                        displayCats();
+                    }
+                });
+
+                // 產生裡面的 HTML (包含拖曳圖示、內容、刪除按鈕)
+                div.innerHTML = `
+                    <span class="drag-handle">☰</span>
+                    <div class="record-content">
+                        <strong>${cat.name}</strong> (Lv. ${cat.level || '未知'}) <br> 本能：${cat.instinct || '無'}
+                    </div>
+                    <button class="delete-btn" onclick="deleteCat(${index})">刪除</button>
+                `;
+                recordArea.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

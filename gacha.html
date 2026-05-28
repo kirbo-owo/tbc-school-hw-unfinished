@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <script src="gachaData.js"></script>
+    <meta charset="UTF-8">
+    <title>轉蛋紀錄</title>
+    <style>
+        body { 
+            background-color: #FEF7E7; 
+            color: #333; 
+            font-family: "微軟正黑體", sans-serif; 
+            padding: 20px; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+        }
+        h1, h2, h3 { color: #C88F09; }
+        
+        .section { 
+            background-color: white; 
+            border: 2px solid #F5B92A; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-bottom: 20px; 
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        
+        /* 這裡加了 :not([type="radio"]) 排除單選鈕，避免全域標籤影響 */
+        label:not(.dynamic-radio-group label) { 
+            font-weight: bold; 
+            margin-right: 10px; 
+            display: inline-block;
+            width: 120px; 
+        }
+        
+        /* 【關鍵修正】明確指定只有下拉選單和日期框可以變寬，不影響單選鈕 */
+        select, input[type="date"] { 
+            padding: 8px; 
+            font-size: 1rem; 
+            border: 1px solid #C88F09; 
+            border-radius: 5px; 
+            min-width: 250px; 
+        }
+        
+        button { 
+            background-color: #F5B92A; 
+            color: black; 
+            border: none; 
+            padding: 10px 20px; 
+            font-weight: bold; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background-color: #C88F09; color: white; }
+        
+        .back-btn { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #C88F09; font-weight: bold; }
+        
+        /* 清單主外殼 */
+        .gacha-box {
+            border-left: 5px solid #F5B92A;
+            background-color: #fff;
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: grab;
+        }
+        .gacha-box.dragging { opacity: 0.5; }
+        .drag-handle { color: #aaa; margin-right: 15px; font-size: 1.2rem; cursor: grab; width: 20px; flex-shrink: 0; }
+        
+        .record-content { 
+            flex-grow: 1; 
+            line-height: 1.5; 
+            padding-right: 20px;
+        }
+        
+        /* 右側控制區固定寬度 */
+        .control-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        /* 狀態標籤 */
+        .status-badge {
+            display: inline-block;
+            width: 50px; 
+            text-align: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        .status-use { background-color: #f7e7ca; color: #eca50c; } 
+        .status-np { background-color: #f7c1c1; color: #ca2c2c; }  
+        .status-xp { background-color: #cae1ee; color: #3d94db; }  
+        .status-store { background-color: #cce5ff; color: #ffffff; } 
+
+        /* 【關鍵修正】強制重置單選鈕外框的 Flex 排版與寬度 */
+        .dynamic-radio-group {
+            background-color: #f9f9f9;
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: 1px dashed #C88F09;
+            display: flex;
+            width: 260px; 
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* 強制覆蓋，確保單選鈕的文字不會亂噴、不繼承全域 label 寬度 */
+        .dynamic-radio-group label {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            width: auto !important; 
+            font-size: 0.9rem !important;
+            font-weight: normal !important;
+            cursor: pointer !important;
+            margin: 0 !important; 
+            padding: 0 !important;
+        }
+
+        /* 強制解除單選鈕本體的 250px 詛咒 */
+        .dynamic-radio-group input[type="radio"] {
+            width: auto !important;
+            min-width: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            cursor: pointer;
+        }
+
+        .delete-btn { 
+            background-color: #ff4d4d; 
+            color: white; 
+            padding: 6px 12px; 
+            font-size: 0.9rem; 
+            border-radius: 4px;
+            width: 65px;
+            text-align: center;
+            border: none;
+            cursor: pointer;
+        }
+        .delete-btn:hover { background-color: #cc0000; }
+    </style>
+</head>
+<body>
+
+    <a href="index.html" class="back-btn">← 返回主頁面</a>
+    <h1>轉蛋紀錄</h1>
+
+    <div class="section">
+        <h3>新增抽卡紀錄</h3>
+        <div class="form-group">
+            <label for="poolSelect">1. 轉蛋卡池：</label>
+            <select id="poolSelect" onchange="updateCharacters()">
+                <option value="">-- 請選擇卡池 --</option>
+                <option value="ultraSouls">超古代勇者 超級靈魂</option>
+                <option value="darkHeroes">逆襲的英雄</option>
+                <option value="festivals">超極選拔祭 (藍眼慶典)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="charSelect">2. 獲得角色：</label>
+            <select id="charSelect">
+                <option value="">-- 請先選擇卡池 --</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="handleSelect">3. 如何處理：</label>
+            <select id="handleSelect">
+                <option value="使用">使用</option>
+                <option value="Np">Np</option>
+                <option value="Xp">Xp</option>
+                <option value="儲存">儲存</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="gachaDate">4. 抽到日期：</label>
+            <input type="date" id="gachaDate">
+        </div>
+
+        <button onclick="saveGacha()">送出紀錄</button>
+    </div>
+
+    <hr style="border-top: 2px solid #C88F09;">
+
+    <h2>我的抽卡歷史清單 (可上下拖移排列、可隨時單選更改狀態)</h2>
+    <div id="gachaOutput"></div>
+
+    <script>
+        window.onload = function() {
+            let today = new Date().toISOString().split('T')[0];
+            document.getElementById("gachaDate").value = today;
+            displayGachaList(); 
+        };
+
+        function updateCharacters() {
+            let poolKey = document.getElementById("poolSelect").value;
+            let charSelect = document.getElementById("charSelect");
+            charSelect.innerHTML = '<option value="">-- 請選擇角色 --</option>';
+
+            if (poolKey && gachaDatabase[poolKey]) {
+                gachaDatabase[poolKey].forEach(function(charName) {
+                    let option = document.createElement("option");
+                    option.value = charName;
+                    option.innerText = charName;
+                    charSelect.appendChild(option);
+                });
+            }
+        }
+
+        function saveGacha() {
+            let poolSelect = document.getElementById("poolSelect");
+            if(poolSelect.selectedIndex === 0) return alert("請選擇卡池！");
+            
+            let poolText = poolSelect.options[poolSelect.selectedIndex].text;
+            let charName = document.getElementById("charSelect").value;
+            let handleType = document.getElementById("handleSelect").value;
+            let rawDate = document.getElementById("gachaDate").value;
+
+            if (!charName || !rawDate) {
+                return alert("請填完所有欄位再送出喔！");
+            }
+
+            let formattedDate = rawDate.replace(/-/g, "/");
+
+            let newRecord = {
+                pool: poolText,
+                character: charName,
+                handle: handleType,
+                date: formattedDate
+            };
+
+            let gachaLogs = JSON.parse(localStorage.getItem("myGachaLogs")) || [];
+            gachaLogs.push(newRecord);
+            localStorage.setItem("myGachaLogs", JSON.stringify(gachaLogs));
+
+            displayGachaList();
+            
+            document.getElementById("charSelect").innerHTML = '<option value="">-- 請先選擇卡池 --</option>';
+            poolSelect.value = "";
+        }
+
+        function changeItemHandle(index, newHandleValue) {
+            let gachaLogs = JSON.parse(localStorage.getItem("myGachaLogs")) || [];
+            gachaLogs[index].handle = newHandleValue;
+            localStorage.setItem("myGachaLogs", JSON.stringify(gachaLogs));
+            displayGachaList(); 
+        }
+
+        function deleteGacha(index) {
+            if (confirm("確定要刪除這筆抽卡紀錄嗎？")) {
+                let gachaLogs = JSON.parse(localStorage.getItem("myGachaLogs")) || [];
+                gachaLogs.splice(index, 1);
+                localStorage.setItem("myGachaLogs", JSON.stringify(gachaLogs));
+                displayGachaList();
+            }
+        }
+
+        function displayGachaList() {
+            let gachaLogs = JSON.parse(localStorage.getItem("myGachaLogs")) || [];
+            let outputDiv = document.getElementById("gachaOutput");
+            outputDiv.innerHTML = ""; 
+
+            let draggedIndex = null;
+
+            gachaLogs.forEach(function(log, index) {
+                let div = document.createElement("div");
+                div.className = "gacha-box";
+                div.draggable = true; 
+
+                let badgeClass = "status-use";
+                if (log.handle === "Np") badgeClass = "status-np";
+                if (log.handle === "Xp") badgeClass = "status-xp";
+                if (log.handle === "儲存") badgeClass = "status-store";
+
+                div.addEventListener("dragstart", () => {
+                    draggedIndex = index;
+                    setTimeout(() => div.classList.add("dragging"), 0);
+                });
+                div.addEventListener("dragend", () => div.classList.remove("dragging"));
+                div.addEventListener("dragover", (e) => e.preventDefault());
+                div.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    let targetIndex = index;
+                    if (draggedIndex !== null && draggedIndex !== targetIndex) {
+                        let draggedItem = gachaLogs.splice(draggedIndex, 1)[0];
+                        gachaLogs.splice(targetIndex, 0, draggedItem);
+                        localStorage.setItem("myGachaLogs", JSON.stringify(gachaLogs));
+                        displayGachaList(); 
+                    }
+                });
+
+                let optionsArray = ["使用", "Np", "Xp", "儲存"];
+                let radiosHtml = optionsArray.map(opt => `
+                    <label>
+                        <input type="radio" 
+                               name="status_${index}" 
+                               value="${opt}" 
+                               ${log.handle === opt ? 'checked' : ''} 
+                               onchange="changeItemHandle(${index}, '${opt}')">
+                        ${opt}
+                    </label>
+                `).join('');
+
+                div.innerHTML = `
+                    <span class="drag-handle">☰</span>
+                    <div class="record-content">
+                        <strong>【${log.date}】「${log.pool}」：</strong><br>
+                        <span style="font-size:1.05rem; color:#C88F09;">★ ${log.character}</span>
+                    </div>
+                    <div class="control-area">
+                        <span class="status-badge ${badgeClass}">${log.handle}</span>
+                        <div class="dynamic-radio-group">
+                            ${radiosHtml}
+                        </div>
+                        <button class="delete-btn" onclick="deleteGacha(${index})">刪除</button>
+                    </div>
+                `;
+                outputDiv.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
